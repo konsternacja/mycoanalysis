@@ -68,6 +68,8 @@ rule run_kraken2:
     threads: 8
     params:
         db = config['database_dir']
+    conda:
+        config[conda_envs] + "kraken.yaml"
     shell:
         '''
         kraken2 --use-names --db {params.db} --threads 8 --report {output.kraken_report} --paired --gzip-compressed {input.forward_reads} {input.reverse_reads} > {output.kraken_output}
@@ -84,6 +86,8 @@ rule kraken2biom:
             ),
     output:
         biom_report = config['output_dir'] + "kraken2/season{season}_{part}/{sample}.biom",
+    conda:
+        config[conda_envs] + "biom.yaml"
     shell:
         '''
         kraken-biom {input} -o {output.biom_report}
@@ -100,6 +104,8 @@ rule merge_kraken2_reports:
             ),
     output:
         txt_report = config['output_dir'] + "kraken2/all_reports.txt",
+    conda:
+        config[conda_envs] + "biom.yaml"
     shell:
         '''
         biom convert -i {input} -o {output.txt_report} --to-tsv --header-key taxonomy
@@ -144,9 +150,11 @@ rule run_bracken:
         bracken_species = config['output_dir'] + "bracken/season{season}_{part}/{sample}_bracken_species.kreport",
     params:
         kmer_distrib = config['kmer_distrib']
+    conda:
+        config[conda_envs] + "bracken.yaml"
     shell:
         '''
-        python scripts/handle_bracken.py {input} {params.kmer_distrib} {output.bracken} {output.bracken_species}
+        scripts/handle_bracken.py {input} {params.kmer_distrib} {output.bracken} {output.bracken_species}
         if [ ! -f {output.bracken} ]; then touch {output.bracken}; fi
         if [ ! -f {output.bracken_species} ]; then touch {output.bracken_species}; fi
         '''
@@ -162,7 +170,7 @@ rule merge_bracken:
         config['output_dir'] + "bracken/bracken_species_all",
     shell:
         '''
-        python scripts/bracken_combine_outputs.py --files {input} -o {output}
+        scripts/bracken_combine_outputs.py --files {input} -o {output}
         '''
 
 
@@ -176,6 +184,8 @@ rule bracken2biom:
             ),
     output:
         config['output_dir'] + "bracken/season{season}_{part}/{sample}.biom",
+    conda:
+        config[conda_envs] + "biom.yaml"
     shell:
         '''
         kraken-biom {input} -o {output}
@@ -192,6 +202,8 @@ rule merge_bracken_reports:
             ),
     output:
         config['output_dir'] + "bracken/all_reports.txt",
+    conda:
+        config[conda_envs] + "biom.yaml"
     shell:
         '''
         biom convert -i {input} -o {output} --to-tsv --header-key taxonomy
@@ -224,7 +236,7 @@ rule change_table_funguild:
         config['output_dir'] + "funguild/funguild.txt",
     shell:
         '''
-        python scripts/change_table_funguild.py {input} {output}
+        scripts/change_table_funguild.py {input} {output}
         '''
 
 
@@ -235,7 +247,7 @@ rule funguild_taxa:
         config['output_dir'] + "funguild/funguild.taxa.txt",
     shell:
         '''
-        python scripts/FUNGuild/FUNGuild.py taxa -otu {input} -format tsv -column taxonomy -classifier unite > {output}
+        scripts/FUNGuild/FUNGuild.py taxa -otu {input} -format tsv -column taxonomy -classifier unite > {output}
         '''
 
 
@@ -246,7 +258,7 @@ rule funguild_guilds:
         config['output_dir'] + "funguild/funguild_guilds.taxa.guilds.txt",
     shell:
         '''
-        python scripts/FUNGuild/FUNGuild.py guild -taxa {input} > {output}
+        scripts/FUNGuild/FUNGuild.py guild -taxa {input} > {output}
         '''
 
 
@@ -260,7 +272,7 @@ rule alpha_diversity:
         config['output_dir'] + "statistics/season{season}_{part}/{sample}.txt",
     shell:
         '''
-        python scripts/KrakenTools/alpha_diversity.py -f {input} -a Sh > {output}
+        scripts/KrakenTools/alpha_diversity.py -f {input} -a Sh > {output}
         '''
 
 rule beta_diversity:
@@ -270,4 +282,4 @@ rule beta_diversity:
         config['output_dir'] + "statistics/beta_diversity.txt",
     shell:
         '''
-        python scripts/KrakenTools/beta_diversity.py -i {input} --type bracken > {output}
+        scripts/KrakenTools/beta_diversity.py -i {input} --type bracken > {output}
